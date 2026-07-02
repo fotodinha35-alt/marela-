@@ -401,71 +401,29 @@
 
 <div id="modalRoot"></div>
 <div class="me-toast" id="toast"></div>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
 <script>
-// Configurações
-const WA_NUMBER = "5531997790494";
-const INSTA_URL = "https://instagram.com/marela_essence";
-const ADMIN_PASS = "marela2026";
-
-const TABS = [
-  {key:'todos', label:'Todos'},
-  {key:'feminino', label:'Feminino'},
-  {key:'masculino', label:'Masculino'}
-];
-
-let products = [];
-let favorites = {};
-let cart = [];
-let isAdmin = false;
-let searchQuery = "";
-let currentTab = "todos";
-const cardSizeSel = {};
-
-const defaultProducts = [
-  {id:"p1", name:"Camisa de Crepe com Gola", price:348.00, category:"feminino", tags:["lancamentos"], image:"https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=500&q=80", sizes:["PP","P","M","G","GG"]},
-  {id:"p2", name:"Blusa Renda Branca", price:179.90, category:"feminino", tags:["mais_vendidos"], image:"https://images.unsplash.com/photo-1596783074918-c84cb06531ca?w=500&q=80", sizes:["P","M","G"]},
-  // Adicione os outros produtos aqui se quiser...
-];
-
-// Firebase
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyCb6XmS8pKNFG84zwwajGnkzf6sotF7vlw",
   authDomain: "marela-a2075.firebaseapp.com",
   projectId: "marela-a2075",
   storageBucket: "marela-a2075.firebasestorage.app",
   messagingSenderId: "200066498601",
   appId: "1:200066498601:web:85881f6a62765578939c38"
-};
+});
 
-firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 window.storage = {
   async get(key) {
-    try {
-      const doc = await db.collection("app_data").doc(key).get();
-      return doc.exists ? { value: doc.data().value } : null;
-    } catch(e) { console.error(e); return null; }
+    const doc = await db.collection("app_data").doc(key).get();
+    return doc.exists ? { value: doc.data().value } : null;
   },
   async set(key, value) {
-    try {
-      await db.collection("app_data").doc(key).set({ value });
-      console.log("Salvo:", key);
-      return true;
-    } catch(e) { console.error(e); return false; }
+    await db.collection("app_data").doc(key).set({ value });
+    return true;
   }
 };
-
-// Suas funções (loadProducts, render, etc) precisam vir aqui
-// Como você já tem elas, só mantenha o resto do código original após esse bloco.
-
-(async function(){
-  console.log("Site iniciado com Firebase");
-  renderTabs();
-  renderFooterCategorias();
-  await loadProducts();
-  await loadFavorites();
-  updateBadges();
-  render();
-})();
 </script>
