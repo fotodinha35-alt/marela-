@@ -1,6 +1,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title> Marela_Essence | Moda que revela sua essência</title>
+<title>Marela_Essence | Moda que revela sua essência</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -416,6 +416,13 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
+  // Em redes móveis/3G ou com proxy/firewall restritivo, a conexão de streaming padrão
+  // do Firestore pode ser bloqueada, causando erro "client is offline" mesmo com internet ok.
+  // Forçar long-polling contorna esse bloqueio.
+  db.settings({
+    experimentalAutoDetectLongPolling: true,
+    merge: true
+  });
 </script>
 
 <script>
