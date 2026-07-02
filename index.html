@@ -546,5 +546,44 @@
   // Inicia tudo
   initStorage();
 
-})();
+})();a
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCb6XmS8pKNFG84zwwajGnkzf6sotF7vlw",
+  authDomain: "marela-a2075.firebaseapp.com",
+  projectId: "marela-a2075",
+  storageBucket: "marela-a2075.firebasestorage.app",
+  messagingSenderId: "200066498601",
+  appId: "1:200066498601:web:85881f6a62765578939c38"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+window.storage = {
+  async get(key) {
+    try {
+      const doc = await db.collection("app_data").doc(key).get();
+      console.log("Get", key, "sucesso");
+      return doc.exists ? { value: doc.data().value } : null;
+    } catch(e) {
+      console.error("Erro get", key, e);
+      return null;
+    }
+  },
+  async set(key, value) {
+    try {
+      await db.collection("app_data").doc(key).set({ value });
+      console.log("✅ SALVO COM SUCESSO:", key);
+      return true;
+    } catch(e) {
+      console.error("❌ ERRO AO SALVAR", key, e);
+      return false;
+    }
+  }
+};
 </script>
