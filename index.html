@@ -402,156 +402,32 @@
 <div id="modalRoot"></div>
 <div class="me-toast" id="toast"></div>
 <script>
-(function(){
-  const WA_NUMBER = "5531997790494";
-  const INSTA_URL = "https://instagram.com/marela_essence";
-  const ADMIN_PASS = "marela2026";
+// Configurações
+const WA_NUMBER = "5531997790494";
+const INSTA_URL = "https://instagram.com/marela_essence";
+const ADMIN_PASS = "marela2026";
 
-  const TABS = [
-    {key:'todos', label:'Todos'},
-    {key:'feminino', label:'Feminino'},
-    {key:'masculino', label:'Masculino'}
-  ];
+const TABS = [
+  {key:'todos', label:'Todos'},
+  {key:'feminino', label:'Feminino'},
+  {key:'masculino', label:'Masculino'}
+];
 
-  let products = [];
-  let favorites = {};
-  let cart = [];
-  let isAdmin = false;
-  let searchQuery = "";
-  let currentTab = "todos";
-  const cardSizeSel = {};
+let products = [];
+let favorites = {};
+let cart = [];
+let isAdmin = false;
+let searchQuery = "";
+let currentTab = "todos";
+const cardSizeSel = {};
 
-  const defaultProducts = [
-    {id:"p1", name:"Camisa de Crepe com Gola", price:348.00, category:"feminino", tags:["lancamentos"],
-     image:"https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=500&q=80", sizes:["PP","P","M","G","GG"]},
-    {id:"p2", name:"Blusa Renda Branca", price:179.90, category:"feminino", tags:["mais_vendidos"],
-     image:"https://images.unsplash.com/photo-1596783074918-c84cb06531ca?w=500&q=80", sizes:["P","M","G"]},
-    {id:"p3", name:"Vestido Linho Amarelo", price:299.90, category:"feminino", tags:["lancamentos"],
-     image:"https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&q=80", sizes:["P","M","G","GG"]},
-    {id:"p4", name:"Saia Midi Crepe", price:229.90, category:"feminino", tags:[],
-     image:"https://images.unsplash.com/photo-1583496661160-fb5886a13d74?w=500&q=80", sizes:["P","M","G","GG"]},
-    {id:"p5", name:"Camisa Linho Bege", price:189.90, category:"masculino", tags:[],
-     image:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80", sizes:["P","M","G","GG"]},
-    {id:"p6", name:"Camisa Social Preta", price:249.90, category:"masculino", tags:["lancamentos"],
-     image:"https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=500&q=80", sizes:["P","M","G","GG"]},
-    {id:"p7", name:"Blusa Animal Print", price:259.90, category:"feminino", tags:["animal_print"],
-     image:"https://images.unsplash.com/photo-1551803091-e20673f15770?w=500&q=80", sizes:["P","M","G"]},
-    {id:"p8", name:"Camisa Decote V Verde", price:318.00, category:"feminino", tags:["mais_vendidos"],
-     image:"https://images.unsplash.com/photo-1608234807905-4466023792f5?w=500&q=80", sizes:["PP","P","M","G","GG"]}
-  ];
+const defaultProducts = [
+  {id:"p1", name:"Camisa de Crepe com Gola", price:348.00, category:"feminino", tags:["lancamentos"], image:"https://images.unsplash.com/photo-1551232864-3f0890e580d9?w=500&q=80", sizes:["PP","P","M","G","GG"]},
+  {id:"p2", name:"Blusa Renda Branca", price:179.90, category:"feminino", tags:["mais_vendidos"], image:"https://images.unsplash.com/photo-1596783074918-c84cb06531ca?w=500&q=80", sizes:["P","M","G"]},
+  // Adicione os outros produtos aqui se quiser...
+];
 
-  // ==================== FIREBASE CONFIG ====================
-  const firebaseConfig = {
-    apiKey: "AIzaSyCb6XmS8pKNFG84zwwajGnkzf6sotF7vlw",
-    authDomain: "marela-a2075.firebaseapp.com",
-    projectId: "marela-a2075",
-    storageBucket: "marela-a2075.firebasestorage.app",
-    messagingSenderId: "200066498601",
-    appId: "1:200066498601:web:85881f6a62765578939c38",
-    measurementId: "G-HWLK2YLVBK"
-  };
-
-  let dbInstance = null;
-
-  function initStorage() {
-    if (!window.firebaseLoaded) {
-      window.firebaseLoaded = true;
-      const script1 = document.createElement('script');
-      script1.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js";
-      document.head.appendChild(script1);
-
-      script1.onload = () => {
-        const script2 = document.createElement('script');
-        script2.src = "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js";
-        document.head.appendChild(script2);
-
-        script2.onload = () => {
-          firebase.initializeApp(firebaseConfig);
-          dbInstance = firebase.firestore();
-
-          window.storage = {
-            async get(key) {
-              try {
-                const doc = await dbInstance.collection("app_data").doc(key).get();
-                return doc.exists ? { value: doc.data().value } : null;
-              } catch(e) {
-                console.error(e);
-                return null;
-              }
-            },
-            async set(key, value) {
-              try {
-                await dbInstance.collection("app_data").doc(key).set({ value });
-                return true;
-              } catch(e) {
-                console.error(e);
-                return false;
-              }
-            }
-          };
-
-          startApp();
-        };
-      };
-    }
-  }
-
-  function startApp() {
-    // Suas funções originais (toast, fmtPrice, etc)
-    function toast(msg){
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.classList.add('show');
-      setTimeout(()=>t.classList.remove('show'), 2400);
-    }
-
-    function fmtPrice(v){ return 'R$ ' + Number(v).toFixed(2).replace('.', ','); }
-    function fmtInstallment(v){
-      const n = Number(v)/5;
-      return '5x de ' + fmtPrice(n);
-    }
-
-    async function loadProducts(){
-      try{
-        const res = await window.storage.get('products_v2');
-        if(res && res.value){
-          products = JSON.parse(res.value);
-        } else {
-          products = defaultProducts;
-          await window.storage.set('products_v2', JSON.stringify(products));
-        }
-        products.forEach(p=>{ if(!p.category) p.category='feminino'; if(!p.tags) p.tags=[]; });
-      }catch(e){
-        products = defaultProducts;
-      }
-    }
-
-    async function saveProducts(){
-      try{ await window.storage.set('products_v2', JSON.stringify(products)); }
-      catch(e){ toast('Erro ao salvar. Tente novamente.'); }
-    }
-
-    // ... (o resto das suas funções: render, openSizeModal, etc continuam iguais)
-
-    // Inicializa
-    renderTabs();
-    renderFooterCategorias();
-    loadProducts().then(() => {
-      loadFavorites();
-      updateBadges();
-      render();
-    });
-  }
-
-  // Inicia tudo
-  initStorage();
-
-})();a
-</script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-
-<script>
+// Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCb6XmS8pKNFG84zwwajGnkzf6sotF7vlw",
   authDomain: "marela-a2075.firebaseapp.com",
@@ -568,22 +444,28 @@ window.storage = {
   async get(key) {
     try {
       const doc = await db.collection("app_data").doc(key).get();
-      console.log("Get", key, "sucesso");
       return doc.exists ? { value: doc.data().value } : null;
-    } catch(e) {
-      console.error("Erro get", key, e);
-      return null;
-    }
+    } catch(e) { console.error(e); return null; }
   },
   async set(key, value) {
     try {
       await db.collection("app_data").doc(key).set({ value });
-      console.log("✅ SALVO COM SUCESSO:", key);
+      console.log("Salvo:", key);
       return true;
-    } catch(e) {
-      console.error("❌ ERRO AO SALVAR", key, e);
-      return false;
-    }
+    } catch(e) { console.error(e); return false; }
   }
 };
+
+// Suas funções (loadProducts, render, etc) precisam vir aqui
+// Como você já tem elas, só mantenha o resto do código original após esse bloco.
+
+(async function(){
+  console.log("Site iniciado com Firebase");
+  renderTabs();
+  renderFooterCategorias();
+  await loadProducts();
+  await loadFavorites();
+  updateBadges();
+  render();
+})();
 </script>
