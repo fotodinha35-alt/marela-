@@ -403,8 +403,8 @@
 <div class="me-toast" id="toast"></div>
 
 <!-- Firebase (compat) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.3.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.3.0/firebase-firestore-compat.min.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCb6XmS8pKNFG84zwwajGnkzf6sotF7vlw",
@@ -463,6 +463,27 @@
     t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'), 2400);
   }
+  function showDebugError(context, err){
+    console.error(context, err);
+    let box = document.getElementById('meDebugBox');
+    if(!box){
+      box = document.createElement('div');
+      box.id = 'meDebugBox';
+      box.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;z-index:99999;background:#3a0d0d;color:#ffdada;font-family:monospace;font-size:12px;padding:12px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);max-height:50vh;overflow:auto;white-space:pre-wrap;border:1px solid #ff6b6b;';
+      document.body.appendChild(box);
+      const closeBtn = document.createElement('div');
+      closeBtn.textContent = '✕ fechar';
+      closeBtn.style.cssText = 'text-align:right;color:#ffb3b3;font-weight:bold;margin-bottom:6px;cursor:pointer;';
+      closeBtn.addEventListener('click', ()=> box.remove());
+      box.appendChild(closeBtn);
+    }
+    const line = document.createElement('div');
+    line.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid #663;';
+    const code = (err && err.code) ? err.code : '(sem code)';
+    const message = (err && err.message) ? err.message : String(err);
+    line.textContent = `[${context}] code: ${code} | ${message}`;
+    box.appendChild(line);
+  }
   function fmtPrice(v){ return 'R$ ' + Number(v).toFixed(2).replace('.', ','); }
   function fmtInstallment(v){
     const n = Number(v)/5;
@@ -483,13 +504,15 @@
             products: defaultProducts,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp()
           });
-        }catch(e2){}
+        }catch(e2){
+          showDebugError('criar catálogo inicial no Firestore', e2);
+        }
       }
       products.forEach(p=>{ if(!p.category) p.category='feminino'; if(!p.tags) p.tags=[]; });
     }catch(e){
-      console.error('Erro ao carregar produtos do Firebase:', e);
       products = defaultProducts;
       toast('Não foi possível conectar ao banco de dados. Exibindo catálogo padrão.');
+      showDebugError('carregar produtos (loadProducts)', e);
     }
   }
   async function saveProducts(){
@@ -498,9 +521,10 @@
         products: products,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+      toast('Alterações salvas com sucesso ✅');
     }catch(e){
-      console.error('Erro ao salvar produtos no Firebase:', e);
       toast('Não foi possível salvar agora. Tente novamente.');
+      showDebugError('salvar produtos (saveProducts)', e);
     }
   }
   async function loadFavorites(){
@@ -936,7 +960,12 @@
   (async function init(){
     renderTabs();
     renderFooterCategorias();
-    await loadProducts();
+    if(typeof firebase === 'undefined' || typeof db === 'undefined'){
+      showDebugError('inicialização', {code:'sdk-nao-carregado', message:'O SDK do Firebase não carregou (script bloqueado ou sem internet). Verifique sua conexão ou algum bloqueador de anúncios/scripts no navegador.'});
+      products = defaultProducts;
+    } else {
+      await loadProducts();
+    }
     await loadFavorites();
     updateBadges();
     render();
