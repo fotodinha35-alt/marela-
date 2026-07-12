@@ -1,6 +1,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title> Marela_Essence | Moda que revela sua essência</title>
+<title>Marela_Essence | Moda que revela sua essência</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Jost:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -402,29 +402,6 @@
 <div id="modalRoot"></div>
 <div class="me-toast" id="toast"></div>
 
-<!-- Firebase (compat) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.3.0/firebase-app-compat.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.3.0/firebase-firestore-compat.min.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCb6XmS8pKNFG84zwwajGnkzf6sotF7vlw",
-    authDomain: "marela-a2075.firebaseapp.com",
-    projectId: "marela-a2075",
-    storageBucket: "marela-a2075.firebasestorage.app",
-    messagingSenderId: "200066498601",
-    appId: "1:200066498601:web:85881f6a62765578939c38"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  // Em redes móveis/3G ou com proxy/firewall restritivo, a conexão de streaming padrão
-  // do Firestore pode ser bloqueada, causando erro "client is offline" mesmo com internet ok.
-  // Forçar long-polling contorna esse bloqueio.
-  db.settings({
-    experimentalAutoDetectLongPolling: true,
-    merge: true
-  });
-</script>
-
 <script>
 (function(){
   const WA_NUMBER = "5531997790494";
@@ -470,77 +447,31 @@
     t.classList.add('show');
     setTimeout(()=>t.classList.remove('show'), 2400);
   }
-  function showDebugError(context, err){
-    console.error(context, err);
-    let box = document.getElementById('meDebugBox');
-    if(!box){
-      box = document.createElement('div');
-      box.id = 'meDebugBox';
-      box.style.cssText = 'position:fixed;left:10px;right:10px;bottom:10px;z-index:99999;background:#3a0d0d;color:#ffdada;font-family:monospace;font-size:12px;padding:12px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);max-height:50vh;overflow:auto;white-space:pre-wrap;border:1px solid #ff6b6b;';
-      document.body.appendChild(box);
-      const closeBtn = document.createElement('div');
-      closeBtn.textContent = '✕ fechar';
-      closeBtn.style.cssText = 'text-align:right;color:#ffb3b3;font-weight:bold;margin-bottom:6px;cursor:pointer;';
-      closeBtn.addEventListener('click', ()=> box.remove());
-      box.appendChild(closeBtn);
-    }
-    const line = document.createElement('div');
-    line.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid #663;';
-    const code = (err && err.code) ? err.code : '(sem code)';
-    const message = (err && err.message) ? err.message : String(err);
-    line.textContent = `[${context}] code: ${code} | ${message}`;
-    box.appendChild(line);
-  }
   function fmtPrice(v){ return 'R$ ' + Number(v).toFixed(2).replace('.', ','); }
   function fmtInstallment(v){
     const n = Number(v)/5;
     return '5x de ' + fmtPrice(n);
   }
 
-  const productsDocRef = db.collection('app_data').doc('products_v2');
-
   async function loadProducts(){
     try{
-      const snap = await productsDocRef.get();
-      if(snap.exists && snap.data() && Array.isArray(snap.data().products) && snap.data().products.length){
-        products = snap.data().products;
-      } else {
-        products = defaultProducts;
-        try{
-          await productsDocRef.set({
-            products: defaultProducts,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }catch(e2){
-          showDebugError('criar catálogo inicial no Firestore', e2);
-        }
-      }
+      const res = await window.storage.get('products_v2', true);
+      products = res && res.value ? JSON.parse(res.value) : defaultProducts;
       products.forEach(p=>{ if(!p.category) p.category='feminino'; if(!p.tags) p.tags=[]; });
     }catch(e){
       products = defaultProducts;
-      toast('Não foi possível conectar ao banco de dados. Exibindo catálogo padrão.');
-      showDebugError('carregar produtos (loadProducts)', e);
+      try{ await window.storage.set('products_v2', JSON.stringify(products), true); }catch(e2){}
     }
   }
   async function saveProducts(){
-    try{
-      await productsDocRef.set({
-        products: products,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      toast('Alterações salvas com sucesso ✅');
-    }catch(e){
-      toast('Não foi possível salvar agora. Tente novamente.');
-      showDebugError('salvar produtos (saveProducts)', e);
-    }
+    try{ await window.storage.set('products_v2', JSON.stringify(products), true); }
+    catch(e){ toast('Não foi possível salvar agora. Tente novamente.'); }
   }
   async function loadFavorites(){
-    try{ const raw = localStorage.getItem('me_favorites_v2'); favorites = raw ? JSON.parse(raw) : {}; }
+    try{ const res = await window.storage.get('favorites_v2', false); favorites = res && res.value ? JSON.parse(res.value) : {}; }
     catch(e){ favorites = {}; }
   }
-  async function saveFavorites(){
-    try{ localStorage.setItem('me_favorites_v2', JSON.stringify(favorites)); }catch(e){}
-  }
+  async function saveFavorites(){ try{ await window.storage.set('favorites_v2', JSON.stringify(favorites), false); }catch(e){} }
 
   function renderTabs(){
     const row = document.getElementById('tabsRow');
@@ -946,13 +877,11 @@
     const email = document.getElementById('newsletterEmail').value.trim();
     if(!email || !email.includes('@')){ toast('Digite um e-mail válido.'); return; }
     try{
-      await db.collection('newsletter_subscribers').add({
-        email: email,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      const key = 'newsletter_' + Date.now();
+      await window.storage.set(key, email, true);
       toast('Obrigada por se inscrever! 💛');
       document.getElementById('newsletterEmail').value = '';
-    }catch(e){ console.error('Erro ao cadastrar e-mail:', e); toast('Não foi possível cadastrar agora.'); }
+    }catch(e){ toast('Não foi possível cadastrar agora.'); }
   });
   document.getElementById('btnAdm').addEventListener('click', ()=>{
     const btn = document.getElementById('btnAdm');
@@ -967,12 +896,7 @@
   (async function init(){
     renderTabs();
     renderFooterCategorias();
-    if(typeof firebase === 'undefined' || typeof db === 'undefined'){
-      showDebugError('inicialização', {code:'sdk-nao-carregado', message:'O SDK do Firebase não carregou (script bloqueado ou sem internet). Verifique sua conexão ou algum bloqueador de anúncios/scripts no navegador.'});
-      products = defaultProducts;
-    } else {
-      await loadProducts();
-    }
+    await loadProducts();
     await loadFavorites();
     updateBadges();
     render();
