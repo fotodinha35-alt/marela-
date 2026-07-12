@@ -402,11 +402,16 @@
 <div id="modalRoot"></div>
 <div class="me-toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   const WA_NUMBER = "5531997790494";
   const INSTA_URL = "https://instagram.com/marela_essence";
-  const ADMIN_PASS = "marela2026"; // altere aqui para sua senha secreta
+
+  // ⚠️ TROQUE pelos dados do SEU projeto (Supabase > Project Settings > API)
+  const SUPABASE_URL = "COLE_AQUI_A_URL_DO_SEU_PROJETO";
+  const SUPABASE_ANON_KEY = "COLE_AQUI_A_ANON_KEY_DO_SEU_PROJETO";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const TABS = [
     {key:'todos', label:'Todos'},
@@ -454,24 +459,20 @@
   }
 
   async function loadProducts(){
-    try{
-      const res = await window.storage.get('products_v2', true);
-      products = res && res.value ? JSON.parse(res.value) : defaultProducts;
-      products.forEach(p=>{ if(!p.category) p.category='feminino'; if(!p.tags) p.tags=[]; });
-    }catch(e){
-      products = defaultProducts;
-      try{ await window.storage.set('products_v2', JSON.stringify(products), true); }catch(e2){}
-    }
-  }
-  async function saveProducts(){
-    try{ await window.storage.set('products_v2', JSON.stringify(products), true); }
-    catch(e){ toast('Não foi possível salvar agora. Tente novamente.'); }
+    const { data, error } = await supabaseClient.from('produtos').select('*').order('created_at', { ascending: true });
+    if(error){ toast('Não foi possível carregar os produtos.'); products = []; return; }
+    products = (data||[]).map(p=>({
+      id: p.id, name: p.name, price: p.price, image: p.image,
+      sizes: p.sizes || [], category: p.category || 'feminino', tags: p.tags || []
+    }));
   }
   async function loadFavorites(){
-    try{ const res = await window.storage.get('favorites_v2', false); favorites = res && res.value ? JSON.parse(res.value) : {}; }
+    try{ favorites = JSON.parse(localStorage.getItem('me_favorites') || '{}'); }
     catch(e){ favorites = {}; }
   }
-  async function saveFavorites(){ try{ await window.storage.set('favorites_v2', JSON.stringify(favorites), false); }catch(e){} }
+  function saveFavorites(){
+    try{ localStorage.setItem('me_favorites', JSON.stringify(favorites)); }catch(e){}
+  }
 
   function renderTabs(){
     const row = document.getElementById('tabsRow');
@@ -571,9 +572,11 @@
       e.stopPropagation();
       const id = el.getAttribute('data-del');
       const prod = products.find(p=>p.id===id);
-      openConfirmModal(`Tem certeza que quer excluir "${prod?prod.name:'esta peça'}"?`, ()=>{
+      openConfirmModal(`Tem certeza que quer excluir "${prod?prod.name:'esta peça'}"?`, async ()=>{
+        const { error } = await supabaseClient.from('produtos').delete().eq('id', id);
+        if(error){ toast('Não foi possível excluir. Tente novamente.'); return; }
         products = products.filter(p=>p.id!==id);
-        saveProducts(); render();
+        render();
         toast('Peça removida.');
       });
     }));
@@ -687,74 +690,53 @@
     }
     draw();
   }
+
   function openAdminLoginModal(){
-  const root = document.getElementById('modalRoot');
-  root.innerHTML = 
-    <div class="me-overlay" id="ovlAdm">
-      <div class="me-modal">
-        <div class="me-modal-close"><button id="admClose">✕</button></div>
-        <p class="me-modal-title">🔐 Acesso Administrador</p>
-        <div class="me-form-field">
-          <label>Usuário</label>
-          <input id="admUser" value="admin" readonly style="background:#f5f5f5;">
-        </div>
-        <div class="me-form-field">
-          <label>Senha</label>
-          <input id="admPass" type="password" placeholder="Digite a senha"/>
-        </div>
-        <p id="admError" style="color:#B5533C;font-size:13px;margin-top:8px;display:none;">Senha incorreta. Tente novamente.</p>
-        <div class="me-form-actions">
-          <button class="me-btn-secondary" id="admCancel">Cancelar</button>
-          <button class="me-btn-primary" id="admEnter">Entrar no Painel</button>
+    const root = document.getElementById('modalRoot');
+    root.innerHTML = `
+      <div class="me-overlay" id="ovlAdm">
+        <div class="me-modal">
+          <div class="me-modal-close"><button id="admClose">✕</button></div>
+          <p class="me-modal-title">Acesso administrador</p>
+          <div class="me-form-field">
+            <label>E-mail</label>
+            <input id="admEmail" type="email" placeholder="seuemail@exemplo.com"/>
+          </div>
+          <div class="me-form-field">
+            <label>Senha</label>
+            <input id="admPass" type="password" placeholder="Digite a senha"/>
+          </div>
+          <p id="admError" style="color:#B5533C;font-size:13px;margin-top:8px;display:none;">E-mail ou senha incorretos.</p>
+          <div class="me-form-actions">
+            <button class="me-btn-secondary" id="admCancel">Cancelar</button>
+            <button class="me-btn-primary" id="admEnter">Entrar</button>
+          </div>
         </div>
       </div>
-    </div>
-  ;
-
-  const input = root.querySelector('#admPass');
-  input.focus();
-
-  root.querySelector('#ovlAdm').addEventListener('click',(e)=>{ if(e.target.id==='ovlAdm') closeModal(); });
-  root.querySelector('#admClose').addEventListener('click', closeModal);
-  root.querySelector('#admCancel').addEventListener('click', closeModal);
-
-  function tryLogin(){
-    if(input.value === ADMIN_PASS){
-      isAdmin = true;
-      const btn = document.getElementById('btnAdm');
-      btn.classList.add('on');
-      btn.innerHTML = '✓ ADM ATIVO';
-      closeModal(); 
-      render();
-      toast('✅ Modo administrador ativado!');
-    } else {
-      root.querySelector('#admError').style.display = 'block';
-    }
-  }
-
-  root.querySelector('#admEnter').addEventListener('click', tryLogin);
-  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryLogin(); });
-  }
     `;
-    const input = root.querySelector('#admPass');
-    input.focus();
+    const emailInput = root.querySelector('#admEmail');
+    const passInput = root.querySelector('#admPass');
+    emailInput.focus();
     root.querySelector('#ovlAdm').addEventListener('click',(e)=>{ if(e.target.id==='ovlAdm') closeModal(); });
     root.querySelector('#admClose').addEventListener('click', closeModal);
     root.querySelector('#admCancel').addEventListener('click', closeModal);
-    function tryLogin(){
-      if(input.value === ADMIN_PASS){
-        isAdmin = true;
-        const btn = document.getElementById('btnAdm');
-        btn.classList.add('on');
-        btn.innerHTML = 'ADM ✓';
-        closeModal(); render();
-        toast('Modo administrador ativado.');
-      } else {
+    async function tryLogin(){
+      const email = emailInput.value.trim();
+      const password = passInput.value;
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if(error){
         root.querySelector('#admError').style.display = 'block';
+        return;
       }
+      isAdmin = true;
+      const btn = document.getElementById('btnAdm');
+      btn.classList.add('on');
+      btn.innerHTML = 'ADM ✓';
+      closeModal(); render();
+      toast('Modo administrador ativado.');
     }
     root.querySelector('#admEnter').addEventListener('click', tryLogin);
-    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryLogin(); });
+    passInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryLogin(); });
   }
 
   function openConfirmModal(message, onConfirm){
@@ -831,16 +813,22 @@
       root.querySelector('#fCatMasc').classList.add('active');
       root.querySelector('#fCatFem').classList.remove('active');
     });
-    root.querySelector('#fSave').addEventListener('click', ()=>{
+    root.querySelector('#fSave').addEventListener('click', async ()=>{
       const name = root.querySelector('#fName').value.trim();
       const price = parseFloat(root.querySelector('#fPrice').value);
       const image = root.querySelector('#fImage').value.trim();
       const sizes = root.querySelector('#fSizes').value.split(',').map(s=>s.trim()).filter(Boolean);
-      const tags = [];
       if(!name || isNaN(price) || !image || sizes.length===0){ toast('Preencha todos os campos corretamente.'); return; }
-      if(editing){ Object.assign(p, {name, price, image, sizes, category:selectedCat, tags}); }
-      else { products.push({id:'p'+Date.now(), name, price, image, sizes, category:selectedCat, tags}); }
-      saveProducts(); closeModal(); render();
+      if(editing){
+        const { error } = await supabaseClient.from('produtos').update({name, price, image, sizes, category:selectedCat}).eq('id', p.id);
+        if(error){ toast('Não foi possível salvar. Tente novamente.'); return; }
+        Object.assign(p, {name, price, image, sizes, category:selectedCat});
+      } else {
+        const { data, error } = await supabaseClient.from('produtos').insert({name, price, image, sizes, category:selectedCat}).select().single();
+        if(error){ toast('Não foi possível salvar. Tente novamente.'); return; }
+        products.push({id:data.id, name, price, image, sizes, category:selectedCat, tags:[]});
+      }
+      closeModal(); render();
       toast(editing ? 'Peça atualizada!' : 'Peça adicionada!');
     });
   }
@@ -905,16 +893,15 @@
   document.getElementById('btnNewsletter').addEventListener('click', async ()=>{
     const email = document.getElementById('newsletterEmail').value.trim();
     if(!email || !email.includes('@')){ toast('Digite um e-mail válido.'); return; }
-    try{
-      const key = 'newsletter_' + Date.now();
-      await window.storage.set(key, email, true);
-      toast('Obrigada por se inscrever! 💛');
-      document.getElementById('newsletterEmail').value = '';
-    }catch(e){ toast('Não foi possível cadastrar agora.'); }
+    const { error } = await supabaseClient.from('newsletter').insert({ email });
+    if(error){ toast('Não foi possível cadastrar agora.'); return; }
+    toast('Obrigada por se inscrever! 💛');
+    document.getElementById('newsletterEmail').value = '';
   });
-  document.getElementById('btnAdm').addEventListener('click', ()=>{
+  document.getElementById('btnAdm').addEventListener('click', async ()=>{
     const btn = document.getElementById('btnAdm');
     if(isAdmin){
+      await supabaseClient.auth.signOut();
       isAdmin = false; btn.classList.remove('on'); btn.textContent='ADM'; render();
       toast('Modo administrador desativado.');
       return;
@@ -925,6 +912,13 @@
   (async function init(){
     renderTabs();
     renderFooterCategorias();
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if(session){
+      isAdmin = true;
+      const btn = document.getElementById('btnAdm');
+      btn.classList.add('on');
+      btn.innerHTML = 'ADM ✓';
+    }
     await loadProducts();
     await loadFavorites();
     updateBadges();
