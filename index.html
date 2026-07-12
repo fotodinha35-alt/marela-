@@ -687,25 +687,54 @@
     }
     draw();
   }
-
   function openAdminLoginModal(){
-    const root = document.getElementById('modalRoot');
-    root.innerHTML = `
-      <div class="me-overlay" id="ovlAdm">
-        <div class="me-modal">
-          <div class="me-modal-close"><button id="admClose">✕</button></div>
-          <p class="me-modal-title">Acesso administrador</p>
-          <div class="me-form-field">
-            <label>Senha</label>
-            <input id="admPass" type="password" placeholder="Digite a senha"/>
-          </div>
-          <p id="admError" style="color:#B5533C;font-size:13px;margin-top:8px;display:none;">Senha incorreta. Tente novamente.</p>
-          <div class="me-form-actions">
-            <button class="me-btn-secondary" id="admCancel">Cancelar</button>
-            <button class="me-btn-primary" id="admEnter">Entrar</button>
-          </div>
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = 
+    <div class="me-overlay" id="ovlAdm">
+      <div class="me-modal">
+        <div class="me-modal-close"><button id="admClose">✕</button></div>
+        <p class="me-modal-title">🔐 Acesso Administrador</p>
+        <div class="me-form-field">
+          <label>Usuário</label>
+          <input id="admUser" value="admin" readonly style="background:#f5f5f5;">
+        </div>
+        <div class="me-form-field">
+          <label>Senha</label>
+          <input id="admPass" type="password" placeholder="Digite a senha"/>
+        </div>
+        <p id="admError" style="color:#B5533C;font-size:13px;margin-top:8px;display:none;">Senha incorreta. Tente novamente.</p>
+        <div class="me-form-actions">
+          <button class="me-btn-secondary" id="admCancel">Cancelar</button>
+          <button class="me-btn-primary" id="admEnter">Entrar no Painel</button>
         </div>
       </div>
+    </div>
+  ;
+
+  const input = root.querySelector('#admPass');
+  input.focus();
+
+  root.querySelector('#ovlAdm').addEventListener('click',(e)=>{ if(e.target.id==='ovlAdm') closeModal(); });
+  root.querySelector('#admClose').addEventListener('click', closeModal);
+  root.querySelector('#admCancel').addEventListener('click', closeModal);
+
+  function tryLogin(){
+    if(input.value === ADMIN_PASS){
+      isAdmin = true;
+      const btn = document.getElementById('btnAdm');
+      btn.classList.add('on');
+      btn.innerHTML = '✓ ADM ATIVO';
+      closeModal(); 
+      render();
+      toast('✅ Modo administrador ativado!');
+    } else {
+      root.querySelector('#admError').style.display = 'block';
+    }
+  }
+
+  root.querySelector('#admEnter').addEventListener('click', tryLogin);
+  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter') tryLogin(); });
+  }
     `;
     const input = root.querySelector('#admPass');
     input.focus();
