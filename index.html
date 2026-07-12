@@ -151,7 +151,6 @@
   .me-card-name{font-size:11.5px;font-weight:600;letter-spacing:.02em;color:var(--brown);text-transform:uppercase;
     margin:0;line-height:1.3;min-height:28px;cursor:pointer;}
   .me-card-price{font-weight:700;font-size:15.5px;color:var(--brown);margin:2px 0 0;}
-  .me-card-installment{font-size:10.5px;color:var(--brown-soft);margin:0 0 6px;}
   .me-sizes-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px;}
   .me-size-chip{
     min-width:26px;height:26px;padding:0 4px;border-radius:6px;border:1.2px solid var(--gold-light);background:#fff;
@@ -409,8 +408,8 @@
   const INSTA_URL = "https://instagram.com/marela_essence";
 
   // ⚠️ TROQUE pelos dados do SEU projeto (Supabase > Project Settings > API)
-  const SUPABASE_URL = "https://kygqwurxrjjxcpzjnwnp.supabase.co";
-  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt5Z3F3dXJ4cmpqeGNwempud25wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM4Nzk2NjgsImV4cCI6MjA5OTQ1NTY2OH0.x--NJyat3Dx9jFUGkuEH0vVocUB7cNucaIROb0srBdQ";
+  const SUPABASE_URL = "COLE_AQUI_A_URL_DO_SEU_PROJETO";
+  const SUPABASE_ANON_KEY = "COLE_AQUI_A_ANON_KEY_DO_SEU_PROJETO";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const TABS = [
@@ -453,10 +452,6 @@
     setTimeout(()=>t.classList.remove('show'), 2400);
   }
   function fmtPrice(v){ return 'R$ ' + Number(v).toFixed(2).replace('.', ','); }
-  function fmtInstallment(v){
-    const n = Number(v)/5;
-    return '5x de ' + fmtPrice(n);
-  }
 
   async function loadProducts(){
     const { data, error } = await supabaseClient.from('produtos').select('*').order('created_at', { ascending: true });
@@ -534,7 +529,6 @@
         <div class="me-card-body">
           <p class="me-card-name" data-open="${p.id}">${p.name}</p>
           <p class="me-card-price">${fmtPrice(p.price)}</p>
-          <p class="me-card-installment">${fmtInstallment(p.price)}</p>
           <div class="me-sizes-row">
             ${p.sizes.map(s=>`<div class="me-size-chip ${sel===s?'sel':''}" data-chipsize="${p.id}|${s}">${s}</div>`).join('')}
           </div>
@@ -617,7 +611,6 @@
               <div>
                 <p class="me-modal-title">${p.name}</p>
                 <p class="me-modal-price">${fmtPrice(p.price)}</p>
-                <p style="font-size:12.5px;color:var(--brown-soft);margin:2px 0 0;">${fmtInstallment(p.price)}</p>
               </div>
             </div>
             <div class="me-sizes-label">Escolha o tamanho</div>
